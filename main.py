@@ -45,7 +45,7 @@ def main(argv):
             pickle.dump(depth_data, file)
 
     if FLAGS.save_depth:
-        depth_video_path = os.path.join(FLAGS.output_dir, f'{current_datetime}_depth.mp4')
+        depth_video_path = os.path.join(FLAGS.output_dir, f'{current_datetime}_depth_{FLAGS.depth_model}.mp4')
         frames_to_vid(depth_data, depth_video_path)
         # extract_and_add_audio(video_path, depth_video_path, depth_video_path)
 
