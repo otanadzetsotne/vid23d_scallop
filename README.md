@@ -1,7 +1,7 @@
-# vid23d
+# vid23d Scallop
 
 ## Introduction
-`vid23d` is a Python application designed to transform 2D video frames into 3D stereo images using depth estimation and stereo pair generation. This project leverages deep learning models for depth perception and computer vision techniques to create enhanced visual experiences.
+`vid23d_scallop` is a Python application designed to transform 2D video frames into 3D stereo images using depth estimation and stereo pair generation. This project leverages deep learning models for depth perception and computer vision techniques to create enhanced visual experiences.
 
 ## Features
 * Depth map estimation from 2D images.
@@ -22,8 +22,8 @@ Before you begin, ensure you have the following installed:
 Clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/yourusername/vid23d.git
-cd vid23d
+git clone https://github.com/yourusername/vid23d_scallop.git
+cd vid23d_scallop
 ```
 
 Install the required Python libraries:
