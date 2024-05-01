@@ -200,10 +200,11 @@ class VideoProcessorApp(QWidget):
         self.set_position(self.outputVideoPlayer, position_percent)
 
     def save_output_video(self):
-        fileName, _ = QFileDialog.getSaveFileName(self, "Save Video", "", "Video Files (*.mp4 *.avi *.mov)")
-        if fileName:
+        file_name, _ = QFileDialog.getSaveFileName(self, "Save Video", "", "Video Files (*.mp4 *.avi *.mov)")
+        if file_name:
             # Implement video saving logic here
-            print("Save the video to:", fileName)
+            print("Save the video to:", file_name)
+
 
 # Uncomment below to run the application
 app = QApplication(sys.argv)
