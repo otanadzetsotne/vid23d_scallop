@@ -1,7 +1,9 @@
 import os
 import pickle
+from pathlib import Path
 import hashlib
 from datetime import datetime
+from time import perf_counter
 
 from tqdm import tqdm
 from absl import flags, app
@@ -26,38 +28,40 @@ def hash_file(filepath):
 
 
 def main(argv):
+    st = perf_counter()
     current_datetime = datetime.now().strftime('%Y%m%d-%H%M')
 
     video_path = FLAGS.input_video
-    video_hash_path = os.path.join(FLAGS.output_dir, hash_file(video_path))
-    os.makedirs(video_hash_path, exist_ok=True)
+    video_stem = Path(video_path).stem
+    # video_hash_path = os.path.join(FLAGS.output_dir, hash_file(video_path))
+    # os.makedirs(video_hash_path, exist_ok=True)
 
-    frames_list = video_frames(video_path)
+    frames = video_frames(video_path)
 
-    depth_file_path = os.path.join(video_hash_path, f'depth_{FLAGS.depth_model}.pickle')
+    depth_file_path = os.path.join(FLAGS.output_dir, f'depth_{FLAGS.depth_model}_{video_stem}.pickle')
     if os.path.exists(depth_file_path):
         with open(depth_file_path, 'rb') as file:
             depth_data = pickle.load(file)
     else:
         # Calculate depth for each frame using the specified depth model
-        depth_data = [to_depth(frame, FLAGS.depth_model) for frame in tqdm(frames_list)]
+        depth_data = [to_depth(frame, FLAGS.depth_model) for frame in tqdm(frames)]
         with open(depth_file_path, 'wb') as file:
             pickle.dump(depth_data, file)
 
     if FLAGS.save_depth:
-        depth_video_path = os.path.join(FLAGS.output_dir, f'{current_datetime}_depth_{FLAGS.depth_model}.mp4')
+        depth_video_path = os.path.join(FLAGS.output_dir, f'depth_{FLAGS.depth_model}_{video_stem}.mp4')
         frames_to_vid(depth_data, depth_video_path)
         # extract_and_add_audio(video_path, depth_video_path, depth_video_path)
 
     # Create stereo pairs and concatenate them
-    stereo_pairs = [create_stereo_pair(frame, depth) for frame, depth in tqdm(zip(frames_list, depth_data))]
-    del depth_data  # Clear depth data from memory
-    stereo_frames = [concatenate_stereo_pair(left, right) for left, right in tqdm(stereo_pairs)]
-    del stereo_pairs  # Clear stereo pairs from memory
+    frames_pairs = list(zip(frames, depth_data))
+    frames = [create_stereo_pair(frame, depth) for frame, depth in tqdm(frames_pairs)]
+    frames = [concatenate_stereo_pair(left, right) for left, right in tqdm(frames)]
 
-    result_video_path = os.path.join(FLAGS.output_dir, f'{current_datetime}.mp4')
-    frames_to_vid(stereo_frames, result_video_path)
-    # extract_and_add_audio(video_path, result_video_path, result_video_path)
+    result_video_path = os.path.join(FLAGS.output_dir, f'res_{FLAGS.depth_model}_{video_stem}.mp4')
+    frames_to_vid(frames, result_video_path)
+    extract_and_add_audio(video_path, result_video_path, result_video_path)
+    print(f'Done: {perf_counter() - st} sec.')
 
 
 if __name__ == '__main__':
