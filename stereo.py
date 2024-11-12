@@ -33,8 +33,8 @@ def create_stereo_pair(image, depth_map, baseline_distance=0.005, depth_scale_fa
     displacement = (baseline_distance * (depth_map_normalized * width)).astype(int)
 
     # Apply displacement to get new coordinates for left and right images
-    left_coords_x = np.clip(x_coords + displacement, 0, width - 1)
-    right_coords_x = np.clip(x_coords - displacement, 0, width - 1)
+    left_coords_x = np.clip(x_coords - displacement, 0, width - 1)
+    right_coords_x = np.clip(x_coords + displacement, 0, width - 1)
 
     # Index the original image with new coordinates to create the stereo pair
     left_image = image[y_coords, left_coords_x]
