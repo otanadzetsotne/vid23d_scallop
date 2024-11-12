@@ -56,6 +56,7 @@ def main(argv):
     if FLAGS.save_depth:
         depth_video_path = os.path.join(FLAGS.output_dir, f'{current_datetime}_depth_{FLAGS.depth_model}.mp4')
         frames_to_vid(depth_data, depth_video_path)
+        depth_data = unpickle_iter(depth_file_path) # iterator got used up
         # extract_and_add_audio(video_path, depth_video_path, depth_video_path)
 
     # Create stereo pairs and concatenate them
