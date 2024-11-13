@@ -10,24 +10,19 @@ import itertools
 
 
 def video_frames(video_path):
-    print('Loading video frames...')
-
     video = cv2.VideoCapture(video_path)
     frames_quantity = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     fps_count = video.get(cv2.CAP_PROP_FPS)
     progress = tqdm(total=frames_quantity)
     
     def get_frames():
-        num_frames = 0
         success = True
         while success:
             success, image = video.read()
             if success:
                 progress.update(1)
-                num_frames += 1
                 yield(image)
 
-        print(f'Done. Got {num_frames} frames')
     return (get_frames(), fps_count)
 
 
@@ -91,8 +86,6 @@ def frames_to_vid(frames, output_video_path, fps=30):
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video = cv2.VideoWriter(output_video_path, fourcc, fps, frame_size)
-
-    print("write iteration start!")
 
     for frame in itertools.chain([first_frame], frames):
         if len(first_frame.shape) == 2:  # Greyscale image

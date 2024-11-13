@@ -41,17 +41,15 @@ def main(argv):
     video_hash_path = os.path.join(FLAGS.output_dir, hash_file(video_path))
     os.makedirs(video_hash_path, exist_ok=True)
 
-    frames_list, fps = video_frames(video_path)
 
     depth_file_path = os.path.join(video_hash_path, f'depth_{FLAGS.depth_model}.pickle')
     if not os.path.exists(depth_file_path):
+        frames_list, fps = video_frames(video_path)
         # Calculate depth for each frame using the specified depth model
         depth_data = (to_depth(frame, FLAGS.depth_model) for frame in tqdm(frames_list))
         pickle_iter(depth_data, depth_file_path)
-        frames_list, fps = video_frames(video_path) # frames_list got used up
     
     depth_data = unpickle_iter(depth_file_path)
-
 
     if FLAGS.save_depth:
         depth_video_path = os.path.join(FLAGS.output_dir, f'{current_datetime}_depth_{FLAGS.depth_model}.mp4')
@@ -59,9 +57,11 @@ def main(argv):
         depth_data = unpickle_iter(depth_file_path) # iterator got used up
         # extract_and_add_audio(video_path, depth_video_path, depth_video_path)
 
+
     # Create stereo pairs and concatenate them
+    frames_list, fps = video_frames(video_path)
     stereo_pairs = (create_stereo_pair(frame, depth) for frame, depth in zip(frames_list, depth_data))
-    stereo_frames = (concatenate_stereo_pair(left, right) for left, right in tqdm(stereo_pairs))
+    stereo_frames = (concatenate_stereo_pair(left, right) for left, right in stereo_pairs)
 
     result_video_path_noaudio = os.path.join(FLAGS.output_dir, f'{current_datetime}-noaudio.mp4')
     result_video_path = os.path.join(FLAGS.output_dir, f'{current_datetime}.mp4')
