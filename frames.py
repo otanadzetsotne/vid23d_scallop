@@ -74,7 +74,7 @@ def concat_frames(input_folder, output_video_path, fps=30):
     video.release()
 
 
-def vid_generator(frames, output_video_path, fps=30):
+def video_generator(frames, output_video_path, fps=30):
     if not frames:
         raise ValueError('Empty frames list')
 

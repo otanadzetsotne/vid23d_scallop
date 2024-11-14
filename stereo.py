@@ -19,6 +19,10 @@ def create_stereo_pair(image, depth_map, baseline_distance=0.005, depth_scale_fa
     # Ensure the input image and depth map have the same dimensions
     assert image.shape[:2] == depth_map.shape[:2], 'The image and depth map must be the same size.'
 
+    # only use red channel for rgb images
+    if len(depth_map.shape) > 2:
+        depth_map = cv2.split(depth_map)[0]
+
     # Scale and normalize the depth map for processing
     depth_map = depth_map.astype(np.float32) / depth_scale_factor
     depth_map_normalized = cv2.normalize(depth_map, None, 0, 1, cv2.NORM_MINMAX)
