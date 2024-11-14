@@ -74,12 +74,10 @@ def concat_frames(input_folder, output_video_path, fps=30):
     video.release()
 
 
-def frames_to_vid(frames, output_video_path, fps=30):
-    print("frames to vid start!")
+def vid_generator(frames, output_video_path, fps=30):
     if not frames:
         raise ValueError('Empty frames list')
 
-    #frames = iter(frames)
     first_frame = next(frames)
     frame_height, frame_width = first_frame.shape[:2]
     frame_size = (frame_width, frame_height)
@@ -91,6 +89,7 @@ def frames_to_vid(frames, output_video_path, fps=30):
         if len(first_frame.shape) == 2:  # Greyscale image
             frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
         video.write(frame)
+        yield
 
     cv2.destroyAllWindows()
     video.release()
