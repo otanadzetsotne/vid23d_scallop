@@ -1,28 +1,30 @@
 import os
 
 import cv2
-import tqdm
+from tqdm import tqdm
 
 from img_depth import to_depth
 from stereo import create_stereo_pair, concatenate_stereo_pair
 
+import itertools
+
 
 def video_frames(video_path):
-    print('Loading video frames...')
-
     video = cv2.VideoCapture(video_path)
     frames_quantity = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    progress = tqdm.tqdm(total=frames_quantity)
-    success = True
-    frames = []
-    while success:
-        success, image = video.read()
-        if success:
-            frames.append(image)
-            progress.update(1)
+    fps_count = video.get(cv2.CAP_PROP_FPS)
+    progress = tqdm(total=frames_quantity)
+    
+    def get_frames():
+        success = True
+        while success:
+            success, image = video.read()
+            if success:
+                progress.update(1)
+                yield(image)
 
-    print(f'Done. Got {len(frames)} frames')
-    return frames
+    return (get_frames(), fps_count)
+
 
 
 def extract_frames(video_path, output_folder):
@@ -33,7 +35,7 @@ def extract_frames(video_path, output_folder):
     print(f'Video loaded. FPS: {video.get(cv2.CAP_PROP_FPS)}')
 
     frames_quantity = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    progress = tqdm.tqdm(total=frames_quantity)
+    progress = tqdm(total=frames_quantity)
     count = 0
     success = True
     frames = []
@@ -44,11 +46,11 @@ def extract_frames(video_path, output_folder):
             progress.update(1)
 
     stereo_frames = []
-    for image, depth in tqdm.tqdm(frames):
+    for image, depth in tqdm(frames):
         stereo = create_stereo_pair(image, depth)
         stereo_frames.append(concatenate_stereo_pair(*stereo))
 
-    for i, frame in enumerate(tqdm.tqdm(stereo_frames)):
+    for i, frame in enumerate(tqdm(stereo_frames)):
         cv2.imwrite(os.path.join(output_folder, f'frame_{i}.jpg'), frame)
 
     video.release()
@@ -72,20 +74,22 @@ def concat_frames(input_folder, output_video_path, fps=30):
     video.release()
 
 
-def frames_to_vid(frames, output_video_path, fps=30):
+def video_generator(frames, output_video_path, fps=30):
     if not frames:
         raise ValueError('Empty frames list')
 
-    frame_height, frame_width = frames[0].shape[:2]
+    first_frame = next(frames)
+    frame_height, frame_width = first_frame.shape[:2]
     frame_size = (frame_width, frame_height)
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video = cv2.VideoWriter(output_video_path, fourcc, fps, frame_size)
 
-    for frame in frames:
-        if len(frames[0].shape) == 2:  # Greyscale image
+    for frame in itertools.chain([first_frame], frames):
+        if len(first_frame.shape) == 2:  # Greyscale image
             frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
         video.write(frame)
+        yield
 
     cv2.destroyAllWindows()
     video.release()

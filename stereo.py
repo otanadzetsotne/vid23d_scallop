@@ -2,50 +2,27 @@ import cv2
 import numpy as np
 
 
-def create_stereo_pair(image, depth_map, baseline_distance=0.005, depth_scale_factor=0.5):
-    """
-    Generates a stereo pair of images (left and right) from a single image and a depth map by simulating
-    the parallax effect seen in stereo vision.
-
-    Parameters:
-    - image: The input image for which the stereo pair will be created.
-    - depth_map: The depth map of the input image. Values represent depth intensity.
-    - baseline_distance: The distance between the two virtual cameras. Default is 0.005.
-    - depth_scale_factor: A scaling factor applied to the depth map to adjust the effect of depth. Default is 0.5.
-
-    Returns:
-    A tuple containing the left and right images of the stereo pair.
-    """
-    # Ensure the input image and depth map have the same dimensions
+def create_stereo_pair(image, depth_map, baseline_distance=0.01, depth_scale_factor=0.15):
     assert image.shape[:2] == depth_map.shape[:2], 'The image and depth map must be the same size.'
+    
+    # only use red channel for rgb images
+    if len(depth_map.shape) > 2:
+        depth_map = cv2.split(depth_map)[0]
 
-    # Scale and normalize the depth map for processing
-    depth_map = depth_map.astype(np.float32) / depth_scale_factor
+    depth_map = ((depth_map.astype(np.float32) ** 2) / depth_scale_factor) ** .5
     depth_map_normalized = cv2.normalize(depth_map, None, 0, 1, cv2.NORM_MINMAX)
 
     height, width = image.shape[:2]
+    x_coords = np.tile(np.arange(width), (height, 1)).astype(np.float32)
+    y_coords = np.repeat(np.arange(height), width).reshape(height, width).astype(np.float32)
 
-    # Create coordinate grids for the image pixels
-    x_coords = np.tile(np.arange(width), (height, 1))
-    y_coords = np.repeat(np.arange(height), width).reshape(height, width)
+    displacement = (baseline_distance * (depth_map_normalized * width)).astype(np.float32)
 
-    # Calculate horizontal displacement based on depth
-    displacement = (baseline_distance * (depth_map_normalized * width)).astype(int)
+    left_coords = np.stack((x_coords - displacement, y_coords), axis=-1)
+    right_coords = np.stack((x_coords + displacement, y_coords), axis=-1)
 
-    # Apply displacement to get new coordinates for left and right images
-    left_coords_x = np.clip(x_coords + displacement, 0, width - 1)
-    right_coords_x = np.clip(x_coords - displacement, 0, width - 1)
-
-    # Index the original image with new coordinates to create the stereo pair
-    left_image = image[y_coords, left_coords_x]
-    right_image = image[y_coords, right_coords_x]
-
-    # Fill in the gaps caused by displacement with inpainting
-    left_image_mask = (left_image == 0).all(axis=2)
-    right_image_mask = (right_image == 0).all(axis=2)
-
-    left_image = cv2.inpaint(left_image, left_image_mask.astype(np.uint8) * 255, 3, cv2.INPAINT_TELEA)
-    right_image = cv2.inpaint(right_image, right_image_mask.astype(np.uint8) * 255, 3, cv2.INPAINT_TELEA)
+    left_image = cv2.remap(image, left_coords, None, cv2.INTER_LINEAR)
+    right_image = cv2.remap(image, right_coords, None, cv2.INTER_LINEAR)
 
     return left_image, right_image
 
@@ -75,3 +52,4 @@ def concatenate_stereo_pair(left_image, right_image, separator_width=0, separato
     concatenated_image = np.concatenate((left_image, separator, right_image), axis=1)
 
     return concatenated_image
+    
