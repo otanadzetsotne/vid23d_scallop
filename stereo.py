@@ -4,19 +4,26 @@ import numpy as np
 
 def create_stereo_pair(image, depth_map, baseline_distance=0.01, depth_scale_factor=0.15):
     assert image.shape[:2] == depth_map.shape[:2], 'The image and depth map must be the same size.'
-    
-    # only use red channel for rgb images
+
+    # Only use red channel for RGB images
     if len(depth_map.shape) > 2:
         depth_map = cv2.split(depth_map)[0]
 
-    depth_map = ((depth_map.astype(np.float32) ** 2) / depth_scale_factor) ** .5
+    # Apply Gaussian blur to smooth depth map edges
+    depth_map = cv2.GaussianBlur(depth_map, (3, 3), 0)
+
+    # Depth normalization & scaling
+    depth_map = ((depth_map.astype(np.float32) ** 2) / depth_scale_factor) ** 0.5
     depth_map_normalized = cv2.normalize(depth_map, None, 0, 1, cv2.NORM_MINMAX)
 
+    # Apply depth-based perspective shift (closer objects move more)
+    depth_weight = 1 / (1 + depth_map_normalized)  # Adjusting the disparity effect
     height, width = image.shape[:2]
+
     x_coords = np.tile(np.arange(width), (height, 1)).astype(np.float32)
     y_coords = np.repeat(np.arange(height), width).reshape(height, width).astype(np.float32)
 
-    displacement = (baseline_distance * (depth_map_normalized * width)).astype(np.float32)
+    displacement = (baseline_distance * depth_weight * width).astype(np.float32)
 
     left_coords = np.stack((x_coords - displacement, y_coords), axis=-1)
     right_coords = np.stack((x_coords + displacement, y_coords), axis=-1)
@@ -52,4 +59,3 @@ def concatenate_stereo_pair(left_image, right_image, separator_width=0, separato
     concatenated_image = np.concatenate((left_image, separator, right_image), axis=1)
 
     return concatenated_image
-    
